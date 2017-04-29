@@ -4,7 +4,7 @@ import           Control.Monad              ()
 import           Control.Monad.State
 import           Data.ByteString.Internal   (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as L
-import           Data.String                (IsString)
+import           Data.String                (IsString, fromString)
 import           Data.Char
 import qualified Data.Text                  as T
 import           Data.Text.Encoding
@@ -141,7 +141,7 @@ lab3 :: Num t => JSON -> t
 lab3 (JSObject list) = 0
 
 stringify :: Data.String.IsString t => JSON -> t
-stringify (JSObject list) = "{}"
+stringify = Data.String.fromString . show
 
 -- вариант с монадой IO
 generateIO :: IO JSON
@@ -162,26 +162,43 @@ type GeneratorState = State StdGen
 generate' :: GeneratorState JSON
 generate' = do
   gen <- get
-  let (num, newGen) = randomR (1, 2) gen :: (Int, StdGen)
-  let json = case num of
-               1 -> JSNULL;
-               2 -> JSArray [JSObject [("pure", JSNULL)]]
-               _ -> error "unexpected random number found"
-  put newGen
+  let (num, newGen) = randomR (1, 3) gen :: (Int, StdGen)
+  let (json, newGen') = case num of
+               1 -> (JSNULL, gen);
+               2 -> (JSBool False, gen)
+               3 -> (JSBool True, gen)
+               4 -> let (num', gen') = randomR (-100, 100) newGen :: (Int, StdGen)
+                    in (JSInt num', gen')
+               _ -> let (size, gen') = randomR (0, 2) newGen :: (Int, StdGen)
+                        (array, gen'')   = runState (generateArray size) gen'
+                     in (JSArray array, gen'')
+            --    _ -> error "unexpected random number found"
+  put newGen'
   return json
 
-generate :: JSON
-generate = evalState generate' (mkStdGen 0)
+generateArray :: Int -> GeneratorState [JSON]
+generateArray 0 = return []
+generateArray n = do
+    gen <- get
+    let (value, newGen) = runState generate' gen
+    put newGen
+    let (values, newGen') = runState (generateArray $ n - 1) newGen
+    put newGen'
+    return (value : values)
+
+
+generate :: Int -> JSON
+generate seed = evalState generate' (mkStdGen seed)
 
 main :: IO()
 main = withSocketsDo $ do
-  dir <- getCurrentDirectory
-  initReq <- parseUrl "http://localhost:13666/lab2"
-  -- initReq <- parseUrl "http://91.239.142.110:13666/lab2"
-  handle <- openFile (dir ++ "/Lab2.hs") ReadMode
-  hSetEncoding handle utf8_bom
-  content <- hGetContents handle
-  let req = urlEncodedBody [("email", email), ("content", encodeUtf8 $ T.pack content) ] $ initReq { method = "POST" }
-  response <- withManager $ httpLbs req
-  hClose handle
-  L.putStrLn $ responseBody response
+    dir <- getCurrentDirectory
+    initReq <- parseUrl "http://localhost:13666/lab2"
+    -- initReq <- parseUrl "http://91.239.142.110:13666/lab2"
+    handle <- openFile (dir ++ "/Lab2.hs") ReadMode
+    hSetEncoding handle utf8_bom
+    content <- hGetContents handle
+    let req = urlEncodedBody [("email", email), ("content", encodeUtf8 $ T.pack content) ] $ initReq { method = "POST" }
+    response <- withManager $ httpLbs req
+    hClose handle
+    L.putStrLn $ responseBody response
