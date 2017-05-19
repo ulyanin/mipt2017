@@ -32,6 +32,29 @@ executable Lab2-exe
                      , aeson
   default-language:    Haskell2010
 
+
+executable TestUserAgent
+    hs-source-dirs:      .
+    main-is:             TestUserAgent.hs
+    ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+    build-depends:       base
+                       , mtl
+                       , bytestring
+                       , text
+                       , network
+                       , xml-conduit
+                       , http-conduit
+                       , html-conduit
+                       , directory
+                       , http-client
+                       , http-types
+                       , http-client-tls
+                       , random
+                       , HTTP
+                       , split
+                       , aeson
+    default-language:    Haskell2010
+
 source-repository head
   type:     git
   location: https://github.com/githubuser/Lab3
