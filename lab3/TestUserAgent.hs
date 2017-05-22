@@ -172,7 +172,7 @@ lab3Async = do
     manager <- newTlsManager
     let timeout = 1000 * 1000 * 1000  -- 1000 seconds
     let getResponseByUrlAsync' = getResponseByUrlAsync (10 ^ 9) manager
-    memberResponsesAsync <- mapM (getResponseByUrlAsync' . urlForPage) [1..113]
+    memberResponsesAsync <- mapM (getResponseByUrlAsync' . urlForPage) [1..112]
     memberResponses <- mapM wait memberResponsesAsync
     let members = concatMap response2Members memberResponses
     print $ length members
