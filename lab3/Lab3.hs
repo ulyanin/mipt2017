@@ -128,7 +128,7 @@ getUsersWithBlog userNames = concat <$> usersInChunks where
 
 lab3 :: IO [T.Text]
 lab3 = do
-    users <- getUsers [1..100]
+    users <- getUsers [1..2]
     filtered <- getUsersWithBlog users
     return $ map T.pack filtered
     -- return $ cursor $// element "a" >=> attributeIs "class" "css-truncate-target f4" &| T.concat . attribute "href"

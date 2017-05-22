@@ -96,19 +96,24 @@ getResponseByUrl manager url = do
     -- Create the request
     initialRequest <- parseRequest url
     let hdr = [(Network.HTTP.Types.Header.hUserAgent, C.pack defaultUserAgent)]
-    let request = initialRequest { method = "GET", requestBody = RequestBodyLBS "", requestHeaders = hdr}
+    let request = initialRequest { method         = "GET"
+                                 , requestBody    = RequestBodyLBS ""
+                                 , requestHeaders = hdr}
 
     httpLbs request manager
 
 
-getResponseByUrlAsync ::  Manager -> String -> IO (Async GitHubResponse)
-getResponseByUrlAsync manager url = do
+getResponseByUrlAsync :: Int -> Manager -> String -> IO (Async GitHubResponse)
+getResponseByUrlAsync timeout manager url = do
 
     -- Create the request
     -- manager <- newManager tlsManagerSettings
     initialRequest <- parseRequest url
     let hdr = [(Network.HTTP.Types.Header.hUserAgent, C.pack defaultUserAgent)]
-    let request = initialRequest { method = "GET", requestBody = RequestBodyLBS "", requestHeaders = hdr}
+    let request = initialRequest { method         = "GET"
+                                 , requestBody    = RequestBodyLBS ""
+                                 , requestHeaders = hdr
+                                 , responseTimeout = responseTimeoutMicro timeout }
 
     async $ httpLbs request manager
 
@@ -164,12 +169,15 @@ lab3 = lab3' [1..100]
 
 lab3Async :: IO [T.Text]
 lab3Async = do
-    manager <- newManager tlsManagerSettings
-    memberResponsesAsync <- mapM (getResponseByUrlAsync manager . urlForPage) [1..2]
+    manager <- newTlsManager
+    let timeout = 1000 * 1000 * 1000  -- 1000 seconds
+    let getResponseByUrlAsync' = getResponseByUrlAsync (10 ^ 9) manager
+    memberResponsesAsync <- mapM (getResponseByUrlAsync' . urlForPage) [1..113]
     memberResponses <- mapM wait memberResponsesAsync
     let members = concatMap response2Members memberResponses
+    print $ length members
     putStrLn $ "members = " ++ init (show $ take 10 members) ++ ".."
-    userResponsesAsync <- mapM (getResponseByUrlAsync manager . addTokenToURL . T.unpack . memberUrl) members
+    userResponsesAsync <- mapM (getResponseByUrlAsync' . addTokenToURL . T.unpack . memberUrl) members
     userResponses <- mapM wait userResponsesAsync
     let users = map response2user userResponses
     putStrLn $ "users = " ++ init (show $ take 10 userResponses) ++ ".."
@@ -178,7 +186,8 @@ lab3Async = do
 
 main :: IO ()
 main = do
-  print "as"
+  users <- lab3Async
+  print users
   -- Create the request
   -- let requestObject = object []
   -- initialRequest <- parseRequest "https://api.github.com/orgs/Microsoft/members?access_token=14b323f7634ef500b2886ef1979f2019f85dd12b"
